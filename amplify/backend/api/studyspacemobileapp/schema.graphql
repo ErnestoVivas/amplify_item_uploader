@@ -4,6 +4,31 @@ enum TileSize {
   LARGE
 }
 
+type SetsDetail {
+  SetsKey: String
+  feedback: String
+  exerciseTime: String
+  startingTime: String
+}
+
+type StudentSession @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  sessionID: String!
+  studySpaceId: String!
+  student: String!
+  sets: [SetsDetail]
+  setsQueue: [String]!
+  blackList: String!
+  active: String!
+  teacher: String!
+}
+
+type TeacherSession @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  studySpaceId: String!
+  teacher: String!
+}
+
 type OrderItemsExercise @model @auth(rules: [{allow: public}]) {
   id: ID!
   exerciseSet: String!

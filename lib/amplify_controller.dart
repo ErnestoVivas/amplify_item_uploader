@@ -22,7 +22,14 @@ Future<void> configureAmplify() async {
 
     // Add amplify plugins (S3 storage not yet added - add if needed)
     final auth = AmplifyAuthCognito();
-    final dataStore = AmplifyDataStore(modelProvider: ModelProvider.instance);
+    final dataStore = AmplifyDataStore(
+      modelProvider: ModelProvider.instance,
+      syncExpressions: [
+        DataStoreSyncExpression(User.classType, () => User.STUDYSPACEID.eq('-99')),
+        DataStoreSyncExpression(OverviewPage.classType, () => OverviewPage.PAGE.eq(99)),
+        DataStoreSyncExpression(Feedback.classType, () => Feedback.CONTENTKEY.eq('99')),
+      ]
+    );
     final AmplifyAPI apiPlugin = AmplifyAPI(modelProvider: ModelProvider.instance);
     await Amplify.addPlugins([auth, dataStore, apiPlugin]);
 

@@ -28,10 +28,13 @@ import 'OrderItemsExercise.dart';
 import 'OverviewPage.dart';
 import 'SingleChoiceQuestion.dart';
 import 'SingleImageChoiceQuestion.dart';
+import 'StudentSession.dart';
+import 'TeacherSession.dart';
 import 'Topic.dart';
 import 'TrueFalseQuestion.dart';
 import 'User.dart';
 import 'Rating.dart';
+import 'SetsDetail.dart';
 import 'TopicCategories.dart';
 
 export 'ContentReferences.dart';
@@ -41,8 +44,11 @@ export 'MultipleChoiceQuestion.dart';
 export 'OrderItemsExercise.dart';
 export 'OverviewPage.dart';
 export 'Rating.dart';
+export 'SetsDetail.dart';
 export 'SingleChoiceQuestion.dart';
 export 'SingleImageChoiceQuestion.dart';
+export 'StudentSession.dart';
+export 'TeacherSession.dart';
 export 'TileSize.dart';
 export 'Topic.dart';
 export 'TopicCategories.dart';
@@ -51,12 +57,12 @@ export 'User.dart';
 
 class ModelProvider implements ModelProviderInterface {
   @override
-  String version = "c03a626d61de2a33e2e96f08260337bf";
+  String version = "60195a99145654027182cec35bb2d0ee";
   @override
-  List<ModelSchema> modelSchemas = [ContentReferences.schema, DragAndDropQuestion.schema, Feedback.schema, MultipleChoiceQuestion.schema, OrderItemsExercise.schema, OverviewPage.schema, SingleChoiceQuestion.schema, SingleImageChoiceQuestion.schema, Topic.schema, TrueFalseQuestion.schema, User.schema];
+  List<ModelSchema> modelSchemas = [ContentReferences.schema, DragAndDropQuestion.schema, Feedback.schema, MultipleChoiceQuestion.schema, OrderItemsExercise.schema, OverviewPage.schema, SingleChoiceQuestion.schema, SingleImageChoiceQuestion.schema, StudentSession.schema, TeacherSession.schema, Topic.schema, TrueFalseQuestion.schema, User.schema];
   static final ModelProvider _instance = ModelProvider();
   @override
-  List<ModelSchema> customTypeSchemas = [Rating.schema, TopicCategories.schema];
+  List<ModelSchema> customTypeSchemas = [Rating.schema, SetsDetail.schema, TopicCategories.schema];
 
   static ModelProvider get instance => _instance;
   
@@ -78,6 +84,10 @@ class ModelProvider implements ModelProviderInterface {
         return SingleChoiceQuestion.classType;
       case "SingleImageChoiceQuestion":
         return SingleImageChoiceQuestion.classType;
+      case "StudentSession":
+        return StudentSession.classType;
+      case "TeacherSession":
+        return TeacherSession.classType;
       case "Topic":
         return Topic.classType;
       case "TrueFalseQuestion":

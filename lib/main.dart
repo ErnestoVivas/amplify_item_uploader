@@ -113,9 +113,8 @@ class _MyHomePageState extends State<MyHomePage> {
         if(scItems[i].isNotEmpty) {
           ++scItemCounter;
           Map<String, dynamic> scAsJson = json.decode(scItems[i]);
-          String exerciseSet = scAsJson["exerciseSets"][0];
-          scAsJson["exerciseSet"] = exerciseSet;
           SingleChoiceQuestion newScQuestion = SingleChoiceQuestion.fromJson(scAsJson);
+
           try {
             //await Amplify.DataStore.save(newScQuestion);
             final request = ModelMutations.create(newScQuestion);
@@ -144,8 +143,6 @@ class _MyHomePageState extends State<MyHomePage> {
         if(sicItems[i].isNotEmpty) {
           ++sicItemCounter;
           Map<String, dynamic> sicAsJson = json.decode(sicItems[i]);
-          String exerciseSet = sicAsJson["exerciseSets"][0];
-          sicAsJson["exerciseSet"] = exerciseSet;
           SingleImageChoiceQuestion newSicQuestion = SingleImageChoiceQuestion.fromJson(sicAsJson);
 
           try {
@@ -176,10 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if(mcItems[i].isNotEmpty) {
           ++mcItemCounter;
           Map<String, dynamic> mcAsJson = json.decode(mcItems[i]);
-          String exerciseSet = mcAsJson["exerciseSets"][0];
-          mcAsJson["exerciseSet"] = exerciseSet;
           MultipleChoiceQuestion newMcQuestion = MultipleChoiceQuestion.fromJson(mcAsJson);
-
 
           try {
             //await Amplify.DataStore.save(newScQuestion);
@@ -207,27 +201,21 @@ class _MyHomePageState extends State<MyHomePage> {
       int tfItemCounter = 0;
       for(int i = 0; i < tfItems.length; ++i) {
         if(tfItems[i].isNotEmpty) {
+          ++tfItemCounter;
           Map<String, dynamic> tfAsJson = json.decode(tfItems[i]);
-          if(tfAsJson["exerciseSets"].length > 0) {
-            String exerciseSet = tfAsJson["exerciseSets"][0];
-            if(exerciseSet != '-1') {
-              ++tfItemCounter;
-              tfAsJson["exerciseSet"] = exerciseSet;
-              TrueFalseQuestion newTfQuestion = TrueFalseQuestion.fromJson(tfAsJson);
+          TrueFalseQuestion newTfQuestion = TrueFalseQuestion.fromJson(tfAsJson);
 
-              try {
-                //await Amplify.DataStore.save(newTfQuestion);
-                final request = ModelMutations.create(newTfQuestion);
-                final response = await Amplify.API.mutate(request: request).response;
-                if(response.data != null) {
-                  print('succesfully saved tf question');
-                }
-              } on ApiException catch (e) {
-                print('Something went wrong saving model: ${e.message}');
-              }
-              print(newTfQuestion.toString());
+          try {
+            //await Amplify.DataStore.save(newTfQuestion);
+            final request = ModelMutations.create(newTfQuestion);
+            final response = await Amplify.API.mutate(request: request).response;
+            if(response.data != null) {
+              print('succesfully saved tf question');
             }
+          } on ApiException catch (e) {
+            print('Something went wrong saving model: ${e.message}');
           }
+          print(newTfQuestion.toString());
         }
       }
       print(tfItemCounter);
@@ -245,8 +233,6 @@ class _MyHomePageState extends State<MyHomePage> {
         if(ddItems[i].isNotEmpty) {
           ++ddItemCounter;
           Map<String, dynamic> ddAsJson = json.decode(ddItems[i]);
-          String exerciseSet = ddAsJson["exerciseSets"][0];
-          ddAsJson["exerciseSet"] = exerciseSet;
           DragAndDropQuestion newDDQuestion = DragAndDropQuestion.fromJson(ddAsJson);
 
           try {
@@ -276,25 +262,19 @@ class _MyHomePageState extends State<MyHomePage> {
       for(int i = 0; i < oieItems.length; ++i) {
         if(oieItems[i].isNotEmpty) {
           Map<String, dynamic> oieAsJson = json.decode(oieItems[i]);
-          if(oieAsJson["exerciseSets"].length > 0) {
-            String exerciseSet = oieAsJson["exerciseSets"][0];
-            if(exerciseSet != '-1') {
-              ++oieItemCounter;
-              oieAsJson["exerciseSet"] = exerciseSet;
-              OrderItemsExercise newOIQuestion = OrderItemsExercise.fromJson(oieAsJson);
-              try {
-                //await Amplify.DataStore.save(newScQuestion);
-                final request = ModelMutations.create(newOIQuestion);
-                final response = await Amplify.API.mutate(request: request).response;
-                if(response.data != null) {
-                  print('succesfully saved oi question');
-                }
-              } on ApiException catch (e) {
-                print('Something went wrong saving model: ${e.message}');
-              }
-              print(newOIQuestion.toString());
+          ++oieItemCounter;
+          OrderItemsExercise newOIQuestion = OrderItemsExercise.fromJson(oieAsJson);
+          try {
+            //await Amplify.DataStore.save(newScQuestion);
+            final request = ModelMutations.create(newOIQuestion);
+            final response = await Amplify.API.mutate(request: request).response;
+            if(response.data != null) {
+              print('succesfully saved oi question');
             }
+          } on ApiException catch (e) {
+            print('Something went wrong saving model: ${e.message}');
           }
+          print(newOIQuestion.toString());
         }
       }
       print(oieItemCounter);
