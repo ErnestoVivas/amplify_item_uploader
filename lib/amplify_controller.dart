@@ -45,3 +45,98 @@ Future<void> configureAmplify() async {
   // sync one time on app launch, such that later queries find data directly
   await Amplify.DataStore.start();
 }
+
+Future<void> deleteItems(List<Model> itemsToDelete) async {
+  for(Model itemToDelete in itemsToDelete) {
+    try {
+      await Amplify.DataStore.delete(itemToDelete);
+    } on DataStoreException catch(e) {
+      safePrint('Something went wrong deleting model: ${e.message}');
+    }
+  }
+}
+
+
+Future<List<SingleChoiceQuestion>> querySingleChoiceQuestions(String queryKey) async {
+  List<SingleChoiceQuestion> singleChoiceQuestions = [];
+  try {
+    singleChoiceQuestions = await Amplify.DataStore.query(
+        SingleChoiceQuestion.classType,
+        where: SingleChoiceQuestion.EXERCISESET.eq(queryKey)
+    );
+  } on DataStoreException catch (e) {
+    singleChoiceQuestions = [];
+    safePrint('Query failed: ${e.message}');
+  }
+  return singleChoiceQuestions;
+}
+
+Future<List<SingleImageChoiceQuestion>> querySingleImageChoiceQuestions(String queryKey) async {
+  List<SingleImageChoiceQuestion> singleImageChoiceQuestions = [];
+  try {
+    singleImageChoiceQuestions = await Amplify.DataStore.query(
+      SingleImageChoiceQuestion.classType,
+      where: SingleImageChoiceQuestion.EXERCISESET.eq(queryKey),
+    );
+  } on DataStoreException catch (e) {
+    singleImageChoiceQuestions = [];
+    safePrint('Query failed: ${e.message}');
+  }
+  return singleImageChoiceQuestions;
+}
+
+Future<List<MultipleChoiceQuestion>> queryMultipleChoiceQuestions(String queryKey) async {
+  List<MultipleChoiceQuestion> multipleChoiceQuestions = [];
+  try {
+    multipleChoiceQuestions = await Amplify.DataStore.query(
+      MultipleChoiceQuestion.classType,
+      where: MultipleChoiceQuestion.EXERCISESET.eq(queryKey),
+    );
+  } on DataStoreException catch (e) {
+    multipleChoiceQuestions = [];
+    safePrint('Query failed: ${e.message}');
+  }
+  return multipleChoiceQuestions;
+}
+
+Future<List<TrueFalseQuestion>> queryTrueFalseQuestions(String queryKey) async {
+  List<TrueFalseQuestion> trueFalseQuestions = [];
+  try {
+    trueFalseQuestions = await Amplify.DataStore.query(
+      TrueFalseQuestion.classType,
+      where: TrueFalseQuestion.EXERCISESET.eq(queryKey),
+    );
+  } on DataStoreException catch (e) {
+    trueFalseQuestions = [];
+    safePrint('Query failed: ${e.message}');
+  }
+  return trueFalseQuestions;
+}
+
+Future<List<DragAndDropQuestion>> queryDragAndDropQuestions(String queryKey) async {
+  List<DragAndDropQuestion> dragAndDropQuestions = [];
+  try {
+    dragAndDropQuestions = await Amplify.DataStore.query(
+      DragAndDropQuestion.classType,
+      where: DragAndDropQuestion.EXERCISESET.eq(queryKey),
+    );
+  } on DataStoreException catch (e) {
+    dragAndDropQuestions = [];
+    safePrint('Query failed: ${e.message}');
+  }
+  return dragAndDropQuestions;
+}
+
+Future<List<OrderItemsExercise>> queryOrderItemsExercises(String queryKey) async {
+  List<OrderItemsExercise> orderItemsExercises = [];
+  try {
+    orderItemsExercises = await Amplify.DataStore.query(
+      OrderItemsExercise.classType,
+      where: OrderItemsExercise.EXERCISESET.eq(queryKey),
+    );
+  } on DataStoreException catch (e) {
+    orderItemsExercises = [];
+    safePrint('Query failed: ${e.message}');
+  }
+  return orderItemsExercises;
+}

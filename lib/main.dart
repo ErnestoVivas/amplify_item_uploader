@@ -47,6 +47,9 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   bool _amplifyConfigured = false;
+  bool _uploadingExercises = false;
+  List<String> _uploadItemsFeedback = [];
+  String setKey = '';
 
   @override
   initState() {
@@ -71,29 +74,43 @@ class _MyHomePageState extends State<MyHomePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ElevatedButton(
-                onPressed: () => _uploadSingleChoiceItems(),
-                child: const Text('Upload Single Choice Items')
+                onPressed: () => _uploadExerciseSet(),
+                child: const Text('Upload Exercise Set')
               ),
-              ElevatedButton(
-                onPressed: () => _uploadSingleImageItems(),
-                child: const Text('Upload Single Image Items')
+              Container(
+                height: 64,
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _uploadingExercises ? 'Saving set $setKey to production' : 'No upload to production in progress'
+                    ),
+                    if(_uploadingExercises)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: const CircularProgressIndicator()
+                      )
+                  ]
+                )
               ),
-              ElevatedButton(
-                onPressed: () => _uploadMultipleChoiceItems(),
-                child: const Text('Upload Multiple Choice Items')
-              ),
-              ElevatedButton(
-                onPressed: () => _uploadTrueFalseItems(),
-                child: const Text('Upload True False Items')
-              ),
-              ElevatedButton(
-                onPressed: () => _uploadDragAndDropItems(),
-                child: const Text('Upload Drag And Drop Items')
-              ),
-              ElevatedButton(
-                onPressed: () => _uploadOrderItemsItems(),
-                child: const Text('Upload Order Items Items')
-              ),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                  ),
+                  child: ListView(
+                    children: [
+                      for(int i = 0; i < _uploadItemsFeedback.length; ++i) ... [
+                        Text(_uploadItemsFeedback[i])
+                      ]
+                    ]
+                  )
+                )
+              )
             ]
           ),
         ),
@@ -101,185 +118,279 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _uploadSingleChoiceItems() async {
+
+  Future<void> _uploadExerciseSet() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
-
     if(result != null) {
-      File scItemsFile = File(result.files.single.path!);
-      String singleChoiceItems = scItemsFile.readAsStringSync();
-      List<String> scItems = singleChoiceItems.split('\n');
-      int scItemCounter = 0;
-      for(int i = 0; i < scItems.length; ++i) {
-        if(scItems[i].isNotEmpty) {
-          ++scItemCounter;
-          Map<String, dynamic> scAsJson = json.decode(scItems[i]);
-          SingleChoiceQuestion newScQuestion = SingleChoiceQuestion.fromJson(scAsJson);
+      setState(() {
+        _uploadItemsFeedback.clear();
+        _uploadingExercises = true;
+      });
+      File exerciseSetFile = File(result.files.single.path!);
+      String exerciseSetJsonStr = exerciseSetFile.readAsStringSync();
+      Map<String, dynamic> exerciseSetJson = json.decode(exerciseSetJsonStr);
 
-          try {
-            //await Amplify.DataStore.save(newScQuestion);
-            final request = ModelMutations.create(newScQuestion);
-            final response = await Amplify.API.mutate(request: request).response;
-            if(response.data != null) {
-              print('succesfully saved sc question');
-            }
-          } on ApiException catch (e) {
-            print('Something went wrong saving model: ${e.message}');
-          }
-          print(newScQuestion.toString());
+      // single choice questions
+      if(exerciseSetJson.containsKey('singleChoiceQuestions')) {
+        List<SingleChoiceQuestion> existentScQuestions = await amplify_controller.querySingleChoiceQuestions(exerciseSetJson['singleChoiceQuestions'][0]['exerciseSet']);
+        bool scQuestionsExist = (existentScQuestions.isNotEmpty) ? true : false;
+        if(scQuestionsExist) {
+          await amplify_controller.deleteItems(existentScQuestions);
+          setState(() { _uploadItemsFeedback.add('Deleted old single choice questions'); });
+        }
+        List<dynamic> scQuestions = exerciseSetJson['singleChoiceQuestions'];
+        for(dynamic scQuestion in scQuestions) {
+          SingleChoiceQuestion newScQuestion = SingleChoiceQuestion.fromJson(scQuestion);
+          await saveNewScItem(newScQuestion);
         }
       }
-      print(scItemCounter);
+
+      // single image choice questions
+      if(exerciseSetJson.containsKey('singleImageChoiceQuestions')) {
+        List<SingleImageChoiceQuestion> existentSicQuestions = await amplify_controller.querySingleImageChoiceQuestions(exerciseSetJson['singleImageChoiceQuestions'][0]['exerciseSet']);
+        bool sicQuestionsExist = (existentSicQuestions.isNotEmpty) ? true : false;
+        if(sicQuestionsExist) {
+          await amplify_controller.deleteItems(existentSicQuestions);
+          setState(() { _uploadItemsFeedback.add('Deleted old single image choice questions'); });
+        }
+
+        List<dynamic> sicQuestions = exerciseSetJson['singleImageChoiceQuestions'];
+        for(dynamic sicQuestion in sicQuestions) {
+          SingleImageChoiceQuestion newSicQuestion = SingleImageChoiceQuestion.fromJson(sicQuestion);
+          await saveNewSicItem(newSicQuestion);
+        }
+      }
+
+      // multiple choice questions
+      if(exerciseSetJson.containsKey('multipleChoiceQuestions')) {
+
+        List<MultipleChoiceQuestion> existentMcQuestions = await amplify_controller.queryMultipleChoiceQuestions(exerciseSetJson['multipleChoiceQuestions'][0]['exerciseSet']);
+        bool mcQuestionsExist = (existentMcQuestions.isNotEmpty) ? true : false;
+        if(mcQuestionsExist) {
+          await amplify_controller.deleteItems(existentMcQuestions);
+          setState(() { _uploadItemsFeedback.add('Deleted old multiple choice questions'); });
+        }
+        List<dynamic> mcQuestions = exerciseSetJson['multipleChoiceQuestions'];
+        for(dynamic mcQuestion in mcQuestions) {
+          MultipleChoiceQuestion newMcQuestion = MultipleChoiceQuestion.fromJson(mcQuestion);
+          await saveNewMcItem(newMcQuestion);
+        }
+      }
+
+      // true false questions
+      if(exerciseSetJson.containsKey('trueFalseQuestions')) {
+        List<TrueFalseQuestion> existentTfQuestions = await amplify_controller.queryTrueFalseQuestions(exerciseSetJson['trueFalseQuestions'][0]['exerciseSet']);
+        bool tfQuestionsExist = (existentTfQuestions.isNotEmpty) ? true : false;
+        if(tfQuestionsExist) {
+          await amplify_controller.deleteItems(existentTfQuestions);
+          setState(() { _uploadItemsFeedback.add('Deleted old true false questions'); });
+        }
+
+        List<dynamic> tfQuestions = exerciseSetJson['trueFalseQuestions'];
+        for(dynamic tfQuestion in tfQuestions) {
+          TrueFalseQuestion newTfQuestion = TrueFalseQuestion.fromJson(tfQuestion);
+          await saveNewTfItem(newTfQuestion);
+        }
+      }
+
+      // drag and drop questions
+      if(exerciseSetJson.containsKey('dragAndDropQuestions')) {
+        List<DragAndDropQuestion> existentDDQuestions = await amplify_controller.queryDragAndDropQuestions(exerciseSetJson['dragAndDropQuestions'][0]['exerciseSet']);
+        bool ddQuestionsExist = (existentDDQuestions.isNotEmpty) ? true : false;
+        if(ddQuestionsExist) {
+          await amplify_controller.deleteItems(existentDDQuestions);
+          setState(() { _uploadItemsFeedback.add('Deleted old drag and drop questions'); });
+        }
+
+        List<dynamic> ddQuestions = exerciseSetJson['dragAndDropQuestions'];
+        for(dynamic ddQuestion in ddQuestions) {
+          DragAndDropQuestion newDDQuestion = DragAndDropQuestion.fromJson(ddQuestion);
+          await saveNewDDItem(newDDQuestion);
+        }
+      }
+
+      // order items exercises
+      if(exerciseSetJson.containsKey('orderItemsExercises')) {
+        List<OrderItemsExercise> existentOieExercises = await amplify_controller.queryOrderItemsExercises(exerciseSetJson['orderItemsExercises'][0]['exerciseSet']);
+        bool oieExercisesExist = (existentOieExercises.isNotEmpty) ? true : false;
+        if(oieExercisesExist) {
+          await amplify_controller.deleteItems(existentOieExercises);
+          setState(() { _uploadItemsFeedback.add('Deleted old order items exercises'); });
+        }
+
+        List<dynamic> oieExercises = exerciseSetJson['orderItemsExercises'];
+        for(dynamic oieExercise in oieExercises) {
+          OrderItemsExercise newOieExercise = OrderItemsExercise.fromJson(oieExercise);
+          await saveNewOieItem(newOieExercise);
+        }
+      }
+      print('\n\n');
+      setState(() => _uploadingExercises = false);
     }
   }
 
-  void _uploadSingleImageItems() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if(result != null) {
-      File sicItemsFile = File(result.files.single.path!);
-      String singleImageItems = sicItemsFile.readAsStringSync();
-      List<String> sicItems = singleImageItems.split('\n');
-      int sicItemCounter = 0;
-      for(int i = 0; i < sicItems.length; ++i) {
-        if(sicItems[i].isNotEmpty) {
-          ++sicItemCounter;
-          Map<String, dynamic> sicAsJson = json.decode(sicItems[i]);
-          SingleImageChoiceQuestion newSicQuestion = SingleImageChoiceQuestion.fromJson(sicAsJson);
 
-          try {
-            //await Amplify.DataStore.save(newScQuestion);
-            final request = ModelMutations.create(newSicQuestion);
-            final response = await Amplify.API.mutate(request: request).response;
-            if(response.data != null) {
-              print('succesfully saved sic question');
-            }
-          } on ApiException catch (e) {
-            print('Something went wrong saving model: ${e.message}');
-          }
-          print(newSicQuestion.toString());
-        }
-      }
-      print(sicItemCounter);
+  Future<void> saveNewScItem(SingleChoiceQuestion newScItem) async {
+    try {
+      SingleChoiceQuestion newScQuestion = SingleChoiceQuestion(
+        exerciseSet: newScItem.exerciseSet,
+        question: newScItem.question,
+        equation: newScItem.equation,
+        image: newScItem.image,
+        answer0: newScItem.answer0,
+        answer1: newScItem.answer1,
+        answer2: newScItem.answer2,
+        answer3: newScItem.answer3,
+        hint: newScItem.hint,
+        solution: newScItem.solution
+      );
+      await Amplify.DataStore.save(newScQuestion);
+      setState(() {
+        _uploadItemsFeedback.add('Saved new ${newScQuestion.runtimeType}');
+      });
+    } catch(e) {
+      safePrint('Something went wrong saving model: $e');
+      setState(() {
+        _uploadItemsFeedback.add('Failed to save ${newScItem.runtimeType}');
+      });
     }
   }
 
-  void _uploadMultipleChoiceItems() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if(result != null) {
-      File mcItemsFile = File(result.files.single.path!);
-      String multipleChoiceItems = mcItemsFile.readAsStringSync();
-      List<String> mcItems = multipleChoiceItems.split('\n');
-      int mcItemCounter = 0;
-      for(int i = 0; i < mcItems.length; ++i) {
-        if(mcItems[i].isNotEmpty) {
-          ++mcItemCounter;
-          Map<String, dynamic> mcAsJson = json.decode(mcItems[i]);
-          MultipleChoiceQuestion newMcQuestion = MultipleChoiceQuestion.fromJson(mcAsJson);
-
-          try {
-            //await Amplify.DataStore.save(newScQuestion);
-            final request = ModelMutations.create(newMcQuestion);
-            final response = await Amplify.API.mutate(request: request).response;
-            if(response.data != null) {
-              print('succesfully saved sic question');
-            }
-          } on ApiException catch (e) {
-            print('Something went wrong saving model: ${e.message}');
-          }
-          print(newMcQuestion.toString());
-        }
-      }
-      print(mcItemCounter);
+  Future<void> saveNewSicItem(SingleImageChoiceQuestion newSicItem) async {
+    try {
+      SingleImageChoiceQuestion newSicQuestion = SingleImageChoiceQuestion(
+        exerciseSet: newSicItem.exerciseSet,
+        question: newSicItem.question,
+        equation: newSicItem.equation,
+        image0: newSicItem.image0,
+        image1: newSicItem.image1,
+        image2: newSicItem.image2,
+        image3: newSicItem.image3,
+        hint: newSicItem.hint,
+        solution: newSicItem.solution,
+      );
+      await Amplify.DataStore.save(newSicQuestion);
+      setState(() {
+        _uploadItemsFeedback.add('Saved new ${newSicQuestion.runtimeType}');
+      });
+    } catch(e) {
+      safePrint('Something went wrong saving model: $e');
+      setState(() {
+        _uploadItemsFeedback.add('Failed to save ${newSicItem.runtimeType}');
+      });
     }
   }
 
-  void _uploadTrueFalseItems() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if(result != null) {
-      File tfItemsFile = File(result.files.single.path!);
-      String trueFalseItems = tfItemsFile.readAsStringSync();
-      List<String> tfItems = trueFalseItems.split('\n');
-      int tfItemCounter = 0;
-      for(int i = 0; i < tfItems.length; ++i) {
-        if(tfItems[i].isNotEmpty) {
-          ++tfItemCounter;
-          Map<String, dynamic> tfAsJson = json.decode(tfItems[i]);
-          TrueFalseQuestion newTfQuestion = TrueFalseQuestion.fromJson(tfAsJson);
-
-          try {
-            //await Amplify.DataStore.save(newTfQuestion);
-            final request = ModelMutations.create(newTfQuestion);
-            final response = await Amplify.API.mutate(request: request).response;
-            if(response.data != null) {
-              print('succesfully saved tf question');
-            }
-          } on ApiException catch (e) {
-            print('Something went wrong saving model: ${e.message}');
-          }
-          print(newTfQuestion.toString());
-        }
-      }
-      print(tfItemCounter);
+  Future<void> saveNewMcItem(MultipleChoiceQuestion newMcItem) async {
+    try {
+      MultipleChoiceQuestion newMcQuestion = MultipleChoiceQuestion(
+        exerciseSet: newMcItem.exerciseSet,
+        question: newMcItem.question,
+        equation: newMcItem.equation,
+        image: newMcItem.image,
+        answers: newMcItem.answers,
+        numCorrectAnswers: newMcItem.numCorrectAnswers,
+        hint: newMcItem.hint,
+        solution: newMcItem.solution
+      );
+      await Amplify.DataStore.save(newMcQuestion);
+      setState(() {
+        _uploadItemsFeedback.add('Saved new ${newMcQuestion.runtimeType}');
+      });
+    } catch(e) {
+      safePrint('Something went wrong saving model: $e');
+      setState(() {
+        _uploadItemsFeedback.add('Failed to save ${newMcItem.runtimeType}');
+      });
     }
   }
 
-  void _uploadDragAndDropItems() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if(result != null) {
-      File ddItemsFile = File(result.files.single.path!);
-      String dragAndDropItems = ddItemsFile.readAsStringSync();
-      List<String> ddItems = dragAndDropItems.split('\n');
-      int ddItemCounter = 0;
-      for(int i = 0; i < ddItems.length; ++i) {
-        if(ddItems[i].isNotEmpty) {
-          ++ddItemCounter;
-          Map<String, dynamic> ddAsJson = json.decode(ddItems[i]);
-          DragAndDropQuestion newDDQuestion = DragAndDropQuestion.fromJson(ddAsJson);
-
-          try {
-            //await Amplify.DataStore.save(newScQuestion);
-            final request = ModelMutations.create(newDDQuestion);
-            final response = await Amplify.API.mutate(request: request).response;
-            if(response.data != null) {
-              print('succesfully saved dd question');
-            }
-          } on ApiException catch (e) {
-            print('Something went wrong saving model: ${e.message}');
-          }
-          print(newDDQuestion.toString());
-        }
-      }
-      print(ddItemCounter);
+  Future<void> saveNewTfItem(TrueFalseQuestion newTfItem) async {
+    try {
+      TrueFalseQuestion newTfQuestion = TrueFalseQuestion(
+        exerciseSet: newTfItem.exerciseSet,
+        question: newTfItem.question,
+        equation: newTfItem.equation,
+        image: newTfItem.image,
+        isTrue: newTfItem.isTrue,
+        hint: newTfItem.hint,
+        solution: newTfItem.solution
+      );
+      await Amplify.DataStore.save(newTfQuestion);
+      setState(() {
+        _uploadItemsFeedback.add('Saved new ${newTfQuestion.runtimeType}');
+      });
+    } catch(e) {
+      safePrint('Something went wrong saving model: $e');
+      setState(() {
+        _uploadItemsFeedback.add('Failed to save ${newTfItem.runtimeType}');
+      });
     }
   }
 
-  void _uploadOrderItemsItems() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if(result != null) {
-      File oieItemsFile = File(result.files.single.path!);
-      String orderItemsItems = oieItemsFile.readAsStringSync();
-      List<String> oieItems = orderItemsItems.split('\n');
-      int oieItemCounter = 0;
-      for(int i = 0; i < oieItems.length; ++i) {
-        if(oieItems[i].isNotEmpty) {
-          Map<String, dynamic> oieAsJson = json.decode(oieItems[i]);
-          ++oieItemCounter;
-          OrderItemsExercise newOIQuestion = OrderItemsExercise.fromJson(oieAsJson);
-          try {
-            //await Amplify.DataStore.save(newScQuestion);
-            final request = ModelMutations.create(newOIQuestion);
-            final response = await Amplify.API.mutate(request: request).response;
-            if(response.data != null) {
-              print('succesfully saved oi question');
-            }
-          } on ApiException catch (e) {
-            print('Something went wrong saving model: ${e.message}');
-          }
-          print(newOIQuestion.toString());
-        }
-      }
-      print(oieItemCounter);
+  Future<void> saveNewDDItem(DragAndDropQuestion newDDItem) async {
+    try {
+      DragAndDropQuestion newDDQuestion = DragAndDropQuestion(
+        exerciseSet: newDDItem.exerciseSet,
+        question: newDDItem.question,
+        typeListOne: newDDItem.typeListOne,
+        typeListTwo: newDDItem.typeListTwo,
+        listOne: newDDItem.listOne,
+        listTwo: newDDItem.listTwo,
+        tileSize: newDDItem.tileSize,
+        isBucketExercise: newDDItem.isBucketExercise,
+        bucketOne: newDDItem.bucketOne,
+        bucketTwo: newDDItem.bucketTwo,
+        hint: newDDItem.hint,
+      );
+      await Amplify.DataStore.save(newDDQuestion);
+      setState(() {
+        _uploadItemsFeedback.add('Saved new ${newDDQuestion.runtimeType}');
+      });
+    } catch(e) {
+      safePrint('Something went wrong saving model: $e');
+      setState(() {
+        _uploadItemsFeedback.add('Failed to save ${newDDItem.runtimeType}');
+      });
     }
   }
+
+  Future<void> saveNewOieItem(OrderItemsExercise newOieItem) async {
+    try {
+      OrderItemsExercise newOieExercise = OrderItemsExercise(
+        exerciseSet: newOieItem.exerciseSet,
+        task: newOieItem.task,
+        cloze: newOieItem.cloze,
+        items: newOieItem.items,
+        falseItems: newOieItem.falseItems,
+        hint: newOieItem.hint
+      );
+      await Amplify.DataStore.save(newOieExercise);
+      setState(() {
+        _uploadItemsFeedback.add('Saved new ${newOieExercise.runtimeType}');
+      });
+    } catch(e) {
+      safePrint('Something went wrong saving model: $e');
+      setState(() {
+        _uploadItemsFeedback.add('Failed to save ${newOieItem.runtimeType}');
+      });
+    }
+  }
+
+  Future<void> saveItem(Model newItem) async {
+    try {
+      await Amplify.DataStore.save(newItem);
+      setState(() {
+        _uploadItemsFeedback.add('Uploaded ${newItem.runtimeType}');
+      });
+    } catch(e) {
+      print('Something went wrong saving model: $e');
+      setState(() {
+        _uploadItemsFeedback.add('Failed to upload ${newItem.runtimeType}');
+      });
+    }
+  }
+
 
   void _configureAmplify() async {
     await amplify_controller.configureAmplify();

@@ -26,6 +26,7 @@ import 'package:flutter/foundation.dart';
 
 
 /** This is an auto generated class representing the StudentSession type in your schema. */
+/*
 @immutable
 class StudentSession extends Model {
   static const classType = const _StudentSessionModelType();
@@ -403,4 +404,4 @@ class StudentSessionModelIdentifier implements ModelIdentifier<StudentSession> {
   @override
   int get hashCode =>
     id.hashCode;
-}
+}*/
